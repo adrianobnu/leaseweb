@@ -16,8 +16,9 @@ use Database\Seeders\DatabaseSeeder;
 uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->beforeEach(function () {
         $this->seed(DatabaseSeeder::class);
-    })->in('Feature');
+    })->in('Feature', 'Stress');
 
+uses(Tests\TestCase::class)->in('Architecture');
 /*
 |--------------------------------------------------------------------------
 | Expectations
