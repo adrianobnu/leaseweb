@@ -20,8 +20,6 @@ Laravel Sail is responsible for the local development environment. In addition, 
 
 ## How to run this project
 
-You dont need to change anything in the code. I have hardcoded the .env file to make more easier to run.
-
 ### Install the composer dependencies
 
 ```
@@ -31,6 +29,12 @@ docker run --rm \
     -w /var/www/html \
     laravelsail/php83-composer:latest \
     composer install --ignore-platform-reqs
+```
+
+### Create the env file
+
+```
+cp .env.example .env
 ```
 
 ### Run the Laravel Sail Up
