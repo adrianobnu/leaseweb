@@ -24,13 +24,13 @@ class DatabaseSeeder extends Seeder
 
         $this->call(BrandSeeder::class);
 
-        Asset::factory(100)->create()->each(function ($asset) {
-            AssetMemory::factory(2)->create([
-                'asset_id' => $asset->id,
-            ]);
-            AssetDisk::factory(3)->create([
-                'asset_id' => $asset->id,
-            ]);
-        });
+        // Asset::factory(10)->create()->each(function ($asset) {
+        //     AssetMemory::factory(1)->create([
+        //         'asset_id' => $asset->id,
+        //     ]);
+        //     AssetDisk::factory(5)->create([
+        //         'asset_id' => $asset->id,
+        //     ]);
+        // });
     }
 }

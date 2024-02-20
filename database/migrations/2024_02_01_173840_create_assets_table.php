@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('assets', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(Brand::class);
-            $table->unsignedInteger('code')->unique();
+            $table->string('code')->unique();
             $table->string('name');
             $table->double('price');
             $table->timestamps();

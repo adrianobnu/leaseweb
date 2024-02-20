@@ -2,26 +2,47 @@
 
 namespace App\Filament\Resources;
 
-use App\Enums\DiskType;
 use App\Filament\Resources\AssetResource\Pages;
+use App\Filament\Resources\AssetResource\RelationManagers\DiskRelationManager;
+use App\Filament\Resources\AssetResource\RelationManagers\MemoryRelationManager;
 use App\Models\Asset;
 use Filament\Forms;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Actions\Action as TableAction;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+
+use function Filament\Support\format_money;
 
 class AssetResource extends Resource
 {
     protected static ?string $model = Asset::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cpu-chip';
+    protected static ?string $navigationGroup = 'Servers';
+
+    public static function getGlobalSearchResultTitle(Model $record): string
+    {
+        return $record->name;
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['code', 'name', 'brand.name'];
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Code' => $record->code,
+            'Brand' => $record->brand->name,
+            'Price' => format_money($record->price, 'USD'),
+        ];
+    }
 
     public static function form(Form $form): Form
     {
@@ -31,7 +52,8 @@ class AssetResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull()
-                    ->unique(ignoreRecord: true),
+                    ->unique(ignoreRecord: true)
+                    ->numeric(),
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
@@ -60,53 +82,6 @@ class AssetResource extends Resource
                             ->required(),
                     ])
                     ->columnSpanFull(),
-                Repeater::make('memories')
-                    ->label('RAM Memories')
-                    ->relationship()
-                    ->orderColumn('size')
-                    ->schema([
-                        Forms\Components\TextInput::make('size')
-                            ->label('Size in GB')
-                            ->required(),
-                        Forms\Components\TextInput::make('quantity')
-                            ->label('Quantity of slots')
-                            ->required(),
-                    ])
-                    ->grid(2)
-                    ->itemLabel(fn (array $state): ?string => $state['size'] ? $state['quantity'].'x'.$state['size'].'GB' : 'New memory')
-                    ->deleteAction(
-                        fn (Action $action) => $action->requiresConfirmation(),
-                    )
-                    ->reorderable(false)
-                    ->collapsible()
-                    ->cloneable()
-                    ->minItems(1)
-                    ->columnSpanFull()
-                    ->addActionLabel('Add memory'),
-                Repeater::make('disks')
-                    ->label('Disks')
-                    ->relationship()
-                    ->orderColumn('size')
-                    ->schema([
-                        Forms\Components\TextInput::make('size')
-                            ->label('Size in GB')
-                            ->required(),
-                        Forms\Components\Select::make('type')
-                            ->options(collect(DiskType::cases())->pluck('value', 'name')->toArray())
-                            ->label('Type')
-                            ->required(),
-                    ])
-                    ->grid(2)
-                    ->itemLabel(fn (array $state): ?string => $state['size'] ? $state['size'].'GB - '.$state['type'] : 'New disk')
-                    ->deleteAction(
-                        fn (Action $action) => $action->requiresConfirmation(),
-                    )
-                    ->reorderable(false)
-                    ->collapsible()
-                    ->cloneable()
-                    ->minItems(1)
-                    ->columnSpanFull()
-                    ->addActionLabel('Add disk'),
             ]);
     }
 
@@ -119,7 +94,8 @@ class AssetResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('name')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->description(fn (Model $record): string => $record->memories->sum('size').' GB Memory | '.$record->disks->sum('size').' GB Disk'),
                 Tables\Columns\TextColumn::make('price')
                     ->money()
                     ->sortable(),
@@ -128,7 +104,12 @@ class AssetResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                //
+                SelectFilter::make('brand_id')
+                    ->label('Brand')
+                    ->relationship('brand', 'name')
+                    ->searchable()
+                    ->multiple()
+                    ->preload(),
             ])
             ->actions([
                 TableAction::make('json')
@@ -138,7 +119,6 @@ class AssetResource extends Resource
                     ->icon('heroicon-m-arrow-down-on-square-stack')
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -151,7 +131,17 @@ class AssetResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageAssets::route('/'),
+            'index' => Pages\ListAssets::route('/'),
+            'create' => Pages\CreateAsset::route('/create'),
+            'edit' => Pages\EditAsset::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            MemoryRelationManager::class,
+            DiskRelationManager::class,
         ];
     }
 }
